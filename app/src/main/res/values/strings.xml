@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">p4</string>
+    <string name="accessibility_service_description">音量キーで画面の輝度を操作し、誤操作による大音量を防止します。</string>
+    <string name="accessibility_service_status">アクセシビリティサービス: %1$s</string>
+    <string name="write_settings_status">システム設定の変更: %1$s</string>
+    <string name="status_enabled">有効</string>
+    <string name="status_disabled">無効</string>
+    <string name="status_granted">許可済み</string>
+    <string name="status_denied">未許可</string>
+    <string name="open_accessibility_settings">アクセシビリティ設定を開く</string>
+    <string name="open_write_settings">システム設定の変更許可を開く</string>
+</resources>
