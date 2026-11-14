@@ -1,0 +1,31 @@
+# Gradle / build output
+.gradle/
+**/build/
+out/
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Local environment (machine-specific, do not commit)
+.jdk-*/
+local.properties
+.DS_Store
+
+# Generated / binary
+*.apk
+*.aab
+*.apks
+*.dex
+*.class
+
+# Native build
+.externalNativeBuild/
+.cxx/
+
+# Misc
+/captures/
+*.hprof
+*.log
