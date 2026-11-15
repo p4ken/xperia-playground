@@ -8,6 +8,7 @@ import android.media.AudioManager
 import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
+import android.os.SystemClock
 import android.provider.Settings
 import android.view.KeyEvent
 import android.view.ViewConfiguration
@@ -20,6 +21,12 @@ import kotlin.math.roundToInt
 
 /** 輝度の段数。増やすと1ステップが細かくなる。 */
 private const val LEVELS = 16
+
+/**
+ * 音量モードの持続時間（ミリ秒）。音量を変えてからこの時間内は、
+ * 短押しも音量の1段階変更になる。音量パネルの表示時間に合わせて調整する。
+ */
+private const val VOLUME_MODE_MS = 3000L
 
 // Android標準の輝度スライダーと同じHLGカーブの係数。
 // 見た目の等間隔さが合わない場合はここを調整する。
@@ -56,7 +63,9 @@ internal fun buildBrightnessTable(min: Int, max: Int): List<Int> =
  * 画面オン中の音量キーをすべて消費し、
  *   短押し → 輝度を1ステップ
  *   長押し → 音量を1段階だけ（押し続けても繰り返さない）
- * に置き換える。画面オフ中はキーイベントが届かないので何もしない。
+ *   音量を変えた直後（音量モード中）の押下 → 音量を1段階だけ
+ * に置き換える。音量モード中もキーは消費し続けるので、
+ * 押しっぱなしで音量が上がり続けることはない。画面オフ中はキーイベントが届かないので何もしない。
  */
 class KeyService : AccessibilityService() {
 
@@ -70,6 +79,9 @@ class KeyService : AccessibilityService() {
 
     /** 今回の押下で長押しタイマーが発火済みか。 */
     private var longPressFired = false
+
+    /** この時刻（uptimeMillis）までは音量モード。 */
+    private var volumeModeUntil = 0L
 
     private val longPressRunnable = Runnable {
         val keyCode = pendingKeyCode ?: return@Runnable
@@ -102,11 +114,18 @@ class KeyService : AccessibilityService() {
                 if (event.repeatCount == 0) {
                     // 新しい押下は、前の押下を破棄して上書きする
                     resetState()
-                    pendingKeyCode = keyCode
-                    handler.postDelayed(
-                        longPressRunnable,
-                        ViewConfiguration.getLongPressTimeout().toLong()
-                    )
+                    if (SystemClock.uptimeMillis() < volumeModeUntil) {
+                        // 音量モード中：押した瞬間に音量を1段階だけ変える。
+                        // pendingKeyCode は null のままなので、UP は無視され、
+                        // 押し続けても繰り返さない。
+                        adjustVolumeOnce(up = keyCode == KeyEvent.KEYCODE_VOLUME_UP)
+                    } else {
+                        pendingKeyCode = keyCode
+                        handler.postDelayed(
+                            longPressRunnable,
+                            ViewConfiguration.getLongPressTimeout().toLong()
+                        )
+                    }
                 }
             }
 
@@ -137,6 +156,8 @@ class KeyService : AccessibilityService() {
         } catch (e: SecurityException) {
             // おやすみモード関連などで拒否された場合は何もしない
         }
+        // 音量モードを開始（または延長）する
+        volumeModeUntil = SystemClock.uptimeMillis() + VOLUME_MODE_MS
     }
 
     // ---- 輝度 --------------------------------------------------------------
